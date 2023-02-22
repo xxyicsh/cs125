@@ -8,6 +8,7 @@ struct userinfoController: RouteCollection{
         userInfos.post(use: createUserinfo)
         userInfos.put(use: updateUserinfo)
         userInfos.put("weight", use: updateUserWeight)
+        //userInfos.get("info", use: getMaininfo)
     }
     
     //create user information
@@ -61,5 +62,10 @@ struct userinfoController: RouteCollection{
             return newUser!.update(on: req.db).transform(to: .ok)
         }
     }
+    
+//    //get main page user info
+//    func getMaininfo(req: Request) throws -> EventLoopFuture<info> {
+//
+//    }
 
 }
