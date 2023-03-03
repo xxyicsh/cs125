@@ -6,4 +6,7 @@ func routes(_ app: Application) throws {
     try app.register(collection: userinfoController())
     
     try app.register(collection: userprefController())
+    
+    try app.register(collection: fooddataController())
+    try app.register(collection: MealController())
 }

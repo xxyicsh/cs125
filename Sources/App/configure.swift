@@ -14,8 +14,8 @@ public func configure(_ app: Application) throws {
     app.databases.use(.mysql(
         hostname: "127.0.0.1",
         username: "root",
-        password: "root",
-        database: "cs125",
+        password: "vapor_password",
+        database: "user",
         tlsConfiguration: tls
     ), as: .mysql)
     
