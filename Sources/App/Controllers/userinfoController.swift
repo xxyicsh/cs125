@@ -161,7 +161,7 @@ struct userinfoController: RouteCollection{
                     do{
                         let checked = try getFoodlist(req: req, foodlist: fl, checked: fl)
                         return checked.map{ checked in
-                            return info(userid: maini.userid, username: maini.username, weight: maini.weight, target: maini.target, calories: maini.calories, taken:maini.calories, foodlist:checked)
+                            return info(userid: maini.userid, username: maini.username, weight: maini.weight, target: maini.target, calories: maini.calories, taken:maini.taken, foodlist:checked)
                         }
                     }catch{
                         return req.eventLoop.makeFailedFuture(error)
