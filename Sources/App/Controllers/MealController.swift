@@ -15,9 +15,9 @@ struct MealController: RouteCollection {
 //            breakfast in breakfast.get(use: getByName)
 //        }
         //breakfast.get(use: getByName)
-        routes.get(use: index)
-        routes.get("name", use: getByName)
-        routes.get("calories", use: getByCal)
+//        routes.get(use: index)
+//        routes.get("name", use: getByName)
+//        routes.get("calories", use: getByCal)
         
     }
     
@@ -47,5 +47,13 @@ struct MealController: RouteCollection {
     
     }
     
+//    //get food list
+//    func getfoodlist(req: Request, foodlist: [Int]) throws ->EventLoopFuture<[Meal]> {
+//        //use list of food id get list of meal
+//    }
+    
+//    func gettaken(req: Request, foodlist: [Int]) throws ->EventLoopFuture<Int> {
+//        //use list of food id get sum of calories
+//    }
 }
 

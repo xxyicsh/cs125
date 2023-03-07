@@ -1,19 +1,20 @@
-class checkfood{
+import Vapor
+final class Checkfood:Content{
     
-    var id: Int!
-    
-    var name: String?
+    var name: String!
     
     var foodid: Int!
     
-    var calories: Int?
+    var contains: [String]!
     
-    var checked: Int?
+    var calories: Int!
     
-    init(id: Int!, name: String? = nil, foodid: Int!, calories: Int? = nil , checked: Int? = nil) {
-        self.id = id
+    var checked: Int!
+    
+    init(name: String!, foodid: Int!, contains:[String]!,calories: Int!, checked: Int!) {
         self.name = name
         self.foodid = foodid
+        self.contains = contains
         self.calories = calories
         self.checked = checked
     }

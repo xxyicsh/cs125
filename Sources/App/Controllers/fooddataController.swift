@@ -4,56 +4,55 @@ import Fluent
 struct fooddataController: RouteCollection{
     func boot(routes: RoutesBuilder) throws {
         let fooddatas = routes.grouped("food")
-        fooddatas.get(use: getFooddata)
-        //        fooddatas.put(use: updateFooddata)
+        fooddatas.get(use: getrecommend)
+        fooddatas.put(use: updateFooddata)
         
     }
     
+    struct userId: Content{
+        let userid: Int
+    }
     
-    // //uncomment to edit-------------------
-    func getFooddata(req: Request) throws -> EventLoopFuture<[Int]> {
-        let dateFormatter = DateFormatter()
-        dateFormatter.timeZone = TimeZone(identifier: "America/Los_Angeles")!
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let currentDate = dateFormatter.date(from: dateFormatter.string(from: Date())) ?? Date()
-        dateFormatter.dateFormat = "HH"
-        let time = Date()
-        let currentTime = dateFormatter.string(from: time)
-        var tag = "breakfast"
-        if Int(currentTime) ?? 0 >= 9 && Int(currentTime) ?? 0 <= 12 {
-            tag = "lunch"
+    //get recommend meal list
+    func getrecommend(req: Request) throws -> EventLoopFuture<[Checkfood]> {
+        let UserId = try req.content.decode(userId.self)
+        let userid = UserId.userid
+        return try getFooddata(req: req, userid: userid).flatMap{ foodData in
+            do{
+                return try getFoodlist(req: req, foodlist: foodData.recommend ?? [], checked: foodData.checked ?? [])
+            }catch{
+                return req.eventLoop.makeFailedFuture(error)
+            }
         }
-        else if Int(currentTime) ?? 0 > 12 && Int(currentTime) ?? 0 <= 18{
-            tag = "dinner"
-        }
-        else{
-            tag = "snack"
-        }
-        print(time,tag)
-        
+    }
+    
+    //get food data record
+    func getFooddata(req: Request, userid:Int) throws -> EventLoopFuture<fooddata> {
+        let current = getdate()
+        let currentDate = current[0]
+        let tag = current[2]
+
         return fooddata.query(on: req.db)
             .filter(\.$date == currentDate)
             .filter(\.$meal == tag)
+            .filter(\.$userid == userid)
             .first()
             .flatMap { foodData in
                 do{
-                    if let foodData = foodData {
+                    if nil != foodData {
                         print("exists")
                         // foodData exists, so return the list of recommended foods
-                        return req.eventLoop.makeSucceededFuture(foodData.checked ?? [])
-                        //foodData.checked ?? []
-                        //                                .all()
-                        
+                        return fooddata.query(on: req.db)
+                            .filter(\.$date == currentDate)
+                            .filter(\.$meal == tag)
+                            .filter(\.$userid == userid)
+                            .first().map{ foodData in
+                                return foodData!
+                            }
                     } else {
                         // foodData does not exist, so create it and return the list of recommended foods
                         print("not exists")
-                        return try createFooddata(req: req, currentDate: currentDate, tag: tag)
-                            .flatMap { foodData in
-                                return req.eventLoop.makeSucceededFuture(foodData.checked ?? [])
-                                //                                    return fooddata.query(on: req.db)
-                                //                                        .filter(\.$id ~~ recommendedFoodIDs)
-                                //                                        .all()
-                            }
+                        return try createFooddata(req: req, tag: tag, id: userid)
                     }
                 } catch{
                     return req.eventLoop.makeFailedFuture(error)
@@ -61,101 +60,100 @@ struct fooddataController: RouteCollection{
             }
     }
     
-    //    //get fooddata which return list of food to app
-    //    func getFooddata(req: Request) throws -> EventLoopFuture<[food]> {
-    //        //1. try get fooddata by current date and tag from fooddata table
-    //        //2. if not found, call createFooddata function.
-    //        //3. createFooddata function will return fooddata object
-    //        //4. use fooddata.recommend and fooddata.checked to generate list of checkfood objects
-    //        //5. return list of checkfood
-    //
-    //    }
-    //
-    //
-    //    //update checked on db
     
     struct CheckRequest: Content{
         let id: Int
-        let foodId: Int
+        let foodid: Int
     }
     
+    //update checked list
     func updateFooddata(req: Request) throws -> EventLoopFuture<HTTPStatus> {
-        //var checked = try getFooddata(req: req)
         let checkRequest = try req.content.decode(CheckRequest.self)
         let id = checkRequest.id
-        let foodId = checkRequest.foodId
-        
-        return try getFooddata(req: req)
-            .flatMap{ checked -> EventLoopFuture<HTTPStatus> in
-                var checkedList = checked
-                checkedList.append(foodId)
-                
-                return fooddata.query(on: req.db)
-                    .filter(\.$id == id)
-                //                    .filter(\.$date == currentDate)
-                //                    .filter(\.$meal == tag)
-                    .first()
-                    .unwrap(or: Abort(.notFound))
-                    .flatMap { foodData in
-                        // Update the checked list of the corresponding fooddata object
-                        foodData.checked = checkedList
-                        
-                        // Save the updated fooddata object in the database
-                        return foodData.save(on: req.db)
-                            .transform(to: .ok)
-                    }
+        let foodId = checkRequest.foodid
+        let time = getdate()
+
+        return fooddata.query(on: req.db)
+            .filter(\.$date == time[0])
+            .filter(\.$meal == time[2])
+            .filter(\.$userid == id)
+            .first()
+            .flatMap{ foodData in
+                var check = foodData!.checked ?? []
+                if !check.contains(foodId){
+                    check.append(foodId)
+                }
+                foodData!.checked = check
+                //print(foodData?.checked,foodData?.date,foodData?.meal)
+                return foodData!.update(on: req.db).transform(to: .ok)
             }
     }
-//        var checked = try getFooddata(req: req)
-//        let result = checked.map { checkedArray -> EventLoopFuture<HTTPStatus> in
-//            if !checkedArray.isEmpty{
-//                checked.flatMap { checked in
-//                    var newChecked = checked
-//                    newChecked.append(foodId)
-//                    fooddata.checked = newChecked
-//                    fooddata.update(on: req.db).transform(to: ())
-//                }
-//                return req.eventLoop.makeSucceededFuture(.ok)
-//            } else {
-//                return req.eventLoop.makeSucceededFuture(.noContent)
-//            }
-//        }
        
-    
-    
-    
-    //1. decode req.content to checkfood object
-    //2. get fooddata by current date and tag from fooddata table;
-    //         if not found return 204 no content
-    //3. update fooddata object, add checkfood.foodid to fooddata.checked list
-    //4. update fooddata onject on db, return 200 ok
-    
-    //
-    //
-    
-    func createFooddata(req: Request, currentDate: Date, tag: String) throws -> EventLoopFuture<fooddata> {
+
+    //create food data on mysql
+    func createFooddata(req: Request, tag: String, id: Int) throws -> EventLoopFuture<fooddata> {
         let fooddata = fooddata()
-        fooddata.id = 1
+        fooddata.userid = id
         fooddata.meal = tag
-        fooddata.recommend = [] // call recom function
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let currentDate = dateFormatter.string(from: Date())
+        fooddata.date = currentDate
+        fooddata.recommend = recommendation() // call recom function
         fooddata.checked = []
         return fooddata.save(on: req.db).map { _ in
                 return fooddata
             }
         //return req.eventLoop.makeSucceededFuture(fooddata)
     }
-    //    //create fooddata to table and return the created object
-    //    func createFooddata() throws -> EventLoopFuture<fooddata> {
-    //        //1. initalize fooddata object
-    //        //      fooddata.id = 1
-    //        //      fooddata.data (this timestamp is auto)
-    //        //      fooddata.meal = (based on current time for breakfast lunch or dinner)
-    //        //      fooddata.recommend = (call recommendation function)
-    //        //      fooddata.checked = [] (empty list of string)
-    //        //2. save object on database
-    //        //3. return object
-    //    }
     
-    // // uncomment to edit-------------------
+    //get current date time and tag
+    func getdate() ->[String]{
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        //get current date
+        let currentDate = dateFormatter.string(from: Date())
+        dateFormatter.dateFormat = "HH"
+        let time = Date()
+        //get current hour
+        let currentTime = dateFormatter.string(from: time)
+        
+        var tag:String
+        if Int(currentTime) ?? 0 >= 5 && Int(currentTime) ?? 0 <= 10 {
+            tag = "breakfast"
+        }
+        else if Int(currentTime) ?? 0 > 10 && Int(currentTime) ?? 0 <= 13{
+            tag = "lunch"
+        }
+        else if Int(currentTime) ?? 0 > 16 && Int(currentTime) ?? 0 <= 20{
+            tag = "dinner"
+        }
+        else{
+            tag = "snack"
+        }
+        print(currentDate,currentTime,tag)
+        return [currentDate, currentTime, tag]
+    }
+
+    // get food list
+    func getFoodlist(req: Request, foodlist: [Int], checked:[Int]) throws -> EventLoopFuture<[Checkfood]> {
+        return Meal.query(on: req.db)
+                .filter(\.$id ~~ foodlist)
+                .all()
+                .map{ meallist in
+                    var cfs:[Checkfood] = []
+                    for m in meallist {
+                        var mealchecked = 0
+                        if checked.contains(m.id!){
+                            mealchecked = 1
+                        }
+                        let cf = Checkfood(name: m.name, foodid: m.id, contains: m.contains, calories: m.calories, checked: mealchecked)
+                        cfs.append(cf)
+                    }
+                    return cfs
+                }
+    }
     
 }

@@ -15,12 +15,15 @@ struct userprefController: RouteCollection{
         return pref.create(on: req.db)
             .transform(to: .ok)
     }
-    
+    struct userId: Content{
+        let userid: Int
+    }
     //get user preference
     func getUserpref(req: Request) throws -> EventLoopFuture<userpref> {
-        return userpref.query(on: req.db).all().map { prefs -> userpref in
-            return prefs[0]
-        }
+        let UserId = try req.content.decode(userId.self)
+        let userid = UserId.userid
+        return userpref.find(userid, on: req.db).map{ pref in
+            return pref!}
     }
     
     //update user preference

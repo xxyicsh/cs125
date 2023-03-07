@@ -13,11 +13,14 @@ final class fooddata: Model, Content {
     
     static let schema = "fooddata"
 
-    @ID(custom: "userid")
+    @ID(custom: "fooddataid")
     var id: Int?
     
-    @Timestamp(key: "date", on: .create)
-    var date: Date?
+    @Field(key: "userid")
+    var userid: Int?
+    
+    @Field(key:"date")
+    var date: String?
 
     @Field(key: "meal")
     var meal: String
@@ -30,8 +33,9 @@ final class fooddata: Model, Content {
     
     init() {}
 
-    init(id: Int? = nil, date: Date? = nil, meal: String, recommend: [Int]? = nil, checked: [Int]? = nil) {
+    init(id: Int? = nil, userid: Int? = nil,date: String? = nil, meal: String, recommend: [Int]? = nil, checked: [Int]? = nil) {
         self.id = id
+        self.userid = userid
         self.date = date
         self.meal = meal
         self.recommend = recommend
