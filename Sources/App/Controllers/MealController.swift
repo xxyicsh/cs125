@@ -18,6 +18,8 @@ struct MealController: RouteCollection {
         routes.get(use: index)
         routes.get("name", use: getByName)
         routes.get("calories", use: getByCal)
+
+        
         
     }
     
@@ -45,6 +47,23 @@ struct MealController: RouteCollection {
                 .filter(\.$calories <= maxCalories)
                 .all()
     
+    }
+    
+    // get food list
+    func getFoodlist(req: Request, foodlist: [Int]) throws -> EventLoopFuture<[Meal]> {
+        return Meal.query(on: req.db)
+                .filter(\.$id ~~ foodlist)
+                .all()
+    }
+    
+    // get cal sum
+    func getSum(req: Request, foodlist: [Int]) throws -> EventLoopFuture<Int> {
+        return Meal.query(on: req.db)
+                .filter(\.$id ~~ foodlist)
+                .all()
+                .map { meals in
+                    return meals.reduce(0) { $0 + ($1.calories) }
+                }
     }
     
 }
