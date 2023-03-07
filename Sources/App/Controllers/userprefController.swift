@@ -6,15 +6,15 @@ struct userprefController: RouteCollection{
         let prefs = routes.grouped("preference")
         prefs.get(use: getUserpref)
         prefs.put(use: updateUserpref)
-        prefs.post(use: createUserpref)
+        //prefs.post(use: createUserpref)
     }
     
     //create user preference
-    func createUserpref(req: Request) throws -> EventLoopFuture<HTTPStatus> {
-        let pref = try req.content.decode(userpref.self)
-        return pref.create(on: req.db)
-            .transform(to: .ok)
-    }
+//    func createUserpref(req: Request) throws -> EventLoopFuture<HTTPStatus> {
+//        let pref = try req.content.decode(userpref.self)
+//        return pref.create(on: req.db)
+//            .transform(to: .ok)
+//    }
     struct userId: Content{
         let userid: Int
     }
