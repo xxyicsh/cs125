@@ -205,13 +205,35 @@ struct userinfoController: RouteCollection{
     }
     
     // get food list
+//    func getFoodlist(req: Request, foodlist: [Int], checked:[Int]) throws -> EventLoopFuture<[Checkfood]> {
+//        return Meal.query(on: req.db)
+//                .filter(\.$id ~~ foodlist)
+//                .all()
+//                .map{ meallist in
+//                    var cfs:[Checkfood] = []
+//                    for m in meallist {
+//                        var mealchecked = 0
+//                        if checked.contains(m.id!){
+//                            mealchecked = 1
+//                        }
+//                        let cf = Checkfood(name: m.name, foodid: m.id, contains: m.contains, calories: m.calories, checked: mealchecked)
+//                        cfs.append(cf)
+//                    }
+//                    return cfs
+//                }
+//    }
     func getFoodlist(req: Request, foodlist: [Int], checked:[Int]) throws -> EventLoopFuture<[Checkfood]> {
         return Meal.query(on: req.db)
                 .filter(\.$id ~~ foodlist)
                 .all()
-                .map{ meallist in
+                .map { meals in
+                    var mealDict: [Int: Meal] = [:]
+                    for meal in meals {
+                        mealDict[meal.id ?? 1] = meal
+                    }
+                    let fl = foodlist.compactMap { mealDict[$0] }
                     var cfs:[Checkfood] = []
-                    for m in meallist {
+                    for m in fl{
                         var mealchecked = 0
                         if checked.contains(m.id!){
                             mealchecked = 1
@@ -223,14 +245,16 @@ struct userinfoController: RouteCollection{
                 }
     }
     
-    // get cal sum
     func getSum(req: Request, foodlist: [Int]) throws -> EventLoopFuture<Int> {
         return Meal.query(on: req.db)
                 .filter(\.$id ~~ foodlist)
                 .all()
                 .map { meals in
-                    return meals.reduce(0) { $0 + ($1.calories) }
+                    var mealDict: [Int: Meal] = [:]
+                    for meal in meals {
+                        mealDict[meal.id ?? 1] = meal
+                    }
+                    return foodlist.reduce(0) { $0 + (mealDict[$1]?.calories ?? 0) }
                 }
     }
-    
 }
