@@ -31,6 +31,7 @@ struct fooddataController: RouteCollection{
         let current = getdate()
         let currentDate = current[0]
         let tag = current[2]
+        
 
         return fooddata.query(on: req.db)
             .filter(\.$date == currentDate)
@@ -100,12 +101,14 @@ struct fooddataController: RouteCollection{
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let currentDate = dateFormatter.string(from: Date())
         fooddata.date = currentDate
-        fooddata.recommend = recommendation() // call recom function
         fooddata.checked = []
-        return fooddata.save(on: req.db).map { _ in
-                return fooddata
+        return try recommendation(req: req, user_id: id, current_time: tag).flatMap {
+            rec in
+            fooddata.recommend = rec
+            return fooddata.save(on: req.db).map { _ in
+                    return fooddata
             }
-        //return req.eventLoop.makeSucceededFuture(fooddata)
+        }
     }
     
     //get current date time and tag
@@ -138,6 +141,7 @@ struct fooddataController: RouteCollection{
     }
 
     // get food list
+    // TODO: same food different time checked are ignored. only one shows.
     func getFoodlist(req: Request, foodlist: [Int], checked:[Int]) throws -> EventLoopFuture<[Checkfood]> {
         return Meal.query(on: req.db)
                 .filter(\.$id ~~ foodlist)
@@ -153,7 +157,7 @@ struct fooddataController: RouteCollection{
                         cfs.append(cf)
                     }
                     return cfs
-                }
+            }
     }
     
 }
