@@ -31,7 +31,7 @@ struct fooddataController: RouteCollection{
         let current = getdate()
         let currentDate = current[0]
         let tag = current[2]
-        
+        //print(tag)
 
         return fooddata.query(on: req.db)
             .filter(\.$date == currentDate)
