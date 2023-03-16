@@ -7,8 +7,21 @@ import Foundation
 import Vapor
 import Fluent
 
-func recommendation(req: Request, user_id: Int, current_time: String) throws -> EventLoopFuture<[Int]> {
-    let user: EventLoopFuture<userinfo> = userinfo.find(user_id, on: req.db).map{u in u!}
+func recommendation(req: Request, user_id: Int, current_time: String, current_date: String) throws -> EventLoopFuture<[Int]> {
+    let user: EventLoopFuture<info> = userinfo.find(user_id, on: req.db).flatMap{ currentinfo in
+        do{
+            let taken = try getTaken(req: req, user_id: user_id, current_date: current_date)
+            return taken.map{ t in
+                var newinfo: info = info(userid: user_id)
+                newinfo.calories = currentinfo!.calories
+                newinfo.taken = t
+                return newinfo
+            }
+        }catch{
+            return req.eventLoop.makeFailedFuture(error)
+        }
+    }
+    
     let user_pref: EventLoopFuture<userpref> = userpref.find(user_id, on: req.db).map{u in u!}
     let combined = user.and(user_pref)
     print("In rec")
@@ -29,8 +42,11 @@ func recommendation(req: Request, user_id: Int, current_time: String) throws -> 
             .all()
             .map {
                 foods in
+                
                 let timeSlot: Int = user_pref.breakfast + user_pref.lunch + user_pref.dinner + user_pref.snack
-                let recCalories: Int = user.calories! / timeSlot
+                print(user.calories!)
+                print(user.taken!)
+                let recCalories: Int = (user.calories! - user.taken!) / timeSlot
                 
                
                 let sorted_foods: [Int] = foods.sorted { food1, food2 in
@@ -99,4 +115,40 @@ func recommendation(req: Request, user_id: Int, current_time: String) throws -> 
                 //return Array(sorted_foods[0..<10])
             }
     }
+}
+
+func getSum(req: Request, foodlist: [Int]) throws -> EventLoopFuture<Int> {
+    return Meal.query(on: req.db)
+            .filter(\.$id ~~ foodlist)
+            .all()
+            .map { meals in
+                var mealDict: [Int: Meal] = [:]
+                for meal in meals {
+                    mealDict[meal.id ?? 1] = meal
+                }
+                return foodlist.reduce(0) { $0 + (mealDict[$1]?.calories ?? 0) }
+            }
+}
+
+func getTaken(req: Request, user_id: Int, current_date: String) throws -> EventLoopFuture<Int> {
+    let currentdata = fooddata.query(on: req.db).filter(\.$date == current_date).filter(\.$userid == user_id).all()
+
+    let foodlist = currentdata.map{ current in
+        var cls:[Int] = []
+        for d in current{
+            let cl = d.checked!
+            cls = cls + cl
+        }
+        return cls
+    }
+    let taken = foodlist.flatMap{ fl in
+        do {
+            print(fl)
+            let result = try getSum(req: req, foodlist: fl)
+            return result
+        }catch{
+            return req.eventLoop.makeFailedFuture(error)
+        }
+    }
+    return taken
 }

@@ -102,7 +102,7 @@ struct fooddataController: RouteCollection{
         let currentDate = dateFormatter.string(from: Date())
         fooddata.date = currentDate
         fooddata.checked = []
-        return try recommendation(req: req, user_id: id, current_time: tag).flatMap {
+        return try recommendation(req: req, user_id: id, current_time: tag, current_date: currentDate).flatMap {
             rec in
             fooddata.recommend = rec
             return fooddata.save(on: req.db).map { _ in
