@@ -4,7 +4,7 @@ import Fluent
 struct fooddataController: RouteCollection{
     func boot(routes: RoutesBuilder) throws {
         let fooddatas = routes.grouped("food")
-        fooddatas.get(use: getrecommend)
+        fooddatas.post(use: getrecommend)
         fooddatas.put(use: updateFooddata)
         
     }

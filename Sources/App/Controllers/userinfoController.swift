@@ -4,12 +4,13 @@ import Fluent
 struct userinfoController: RouteCollection{
     func boot(routes: RoutesBuilder) throws {
         let userInfos = routes.grouped("user")
-        userInfos.get(use: getUserinfo)
-        userInfos.get("main",use: getMaininfo)
+        userInfos.post(use: getUserinfo)
+        userInfos.post("main",use: getMaininfo)
         userInfos.put(use: updateUserinfo)
         userInfos.put("weight", use: updateUserWeight)
         userInfos.post("register", use: registerUser)
-        userInfos.get("login", use:loginUser)
+        userInfos.post("login", use:loginUser)
+        userInfos.put("step", use: updateCaloriesbyStep)
     }
     
     //create user information
@@ -256,5 +257,23 @@ struct userinfoController: RouteCollection{
                     }
                     return foodlist.reduce(0) { $0 + (mealDict[$1]?.calories ?? 0) }
                 }
+    }
+    
+    struct userSteps: Content{
+        let userid: Int
+        let steps: Int
+    }
+    
+    func updateCaloriesbyStep(req: Request) throws -> EventLoopFuture<HTTPStatus> {
+        let UserSteps = try req.content.decode(userSteps.self)
+        let userid = UserSteps.userid
+        let steps = UserSteps.steps
+        return userinfo.find(userid, on: req.db).flatMap{ newinfo -> EventLoopFuture<HTTPStatus> in
+            if nil == newinfo{
+                return userinfo.find(userid, on: req.db).transform(to: .noContent)
+            }
+            newinfo!.calories = newinfo!.calories! + Int((newinfo!.weight/70) * 0.03 * Double(steps))
+            return newinfo!.save(on: req.db).transform(to: .ok)
+        }
     }
 }

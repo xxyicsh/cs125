@@ -4,7 +4,7 @@ import Fluent
 struct userprefController: RouteCollection{
     func boot(routes: RoutesBuilder) throws {
         let prefs = routes.grouped("preference")
-        prefs.get(use: getUserpref)
+        prefs.post(use: getUserpref)
         prefs.put(use: updateUserpref)
         //prefs.post(use: createUserpref)
     }
